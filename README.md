@@ -1,3 +1,10 @@
+Cuteeterminal
+
+A learning project using [lovable.dev ](https://lovable.dev) 
+
+
+
+-----Build upon the below project-------
 # Welcome to your GPT Engineer project
 
 ## Project info
