@@ -135,12 +135,12 @@ const Index = () => {
           className="mb-4 bg-input text-primary border-primary"
         />
 
-        <Tabs defaultValue="hackernews" className="mb-6" onValueChange={setActiveTab}>
+        <Tabs defaultValue="arxiv" className="mb-6" onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="hackernews">Hacker News</TabsTrigger>
             <TabsTrigger value="arxiv">Arxiv Papers</TabsTrigger>
             <TabsTrigger value="github">GitHub</TabsTrigger>
             <TabsTrigger value="huggingface">HuggingFace</TabsTrigger>
+            <TabsTrigger value="hackernews">Hacker News</TabsTrigger>
           </TabsList>
 
           <TabsContent value="hackernews">
