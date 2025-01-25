@@ -1,6 +1,15 @@
 Cuteeterminal
 
-A learning project using [lovable.dev ](https://lovable.dev) 
+- Search Arxiv, Github, Huggingface, Hacker News.
+- View latest or most popular articles and pages.
+
+Soon to add an interface with a no save, add/delete API for DeepSeek, Gemini, OpenAi.
+Then, building from there.
+
+
+
+This is mainly a learning project using [lovable.dev ](https://lovable.dev) 
+Altering the below project.
 
 
 
