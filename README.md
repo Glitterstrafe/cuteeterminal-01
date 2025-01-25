@@ -34,3 +34,9 @@ Cuteeterminal started as a learning project by building upon the fantastic **sto
 4. Open your browser to http://localhost:3000 and enjoy!
 
 
+---
+
+Feel free to tweak it to your heart’s content! Let me know if you want help crafting any part of it further. 🌟💻
+
+
+
