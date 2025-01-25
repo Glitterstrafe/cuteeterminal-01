@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ExternalLink, Terminal, Book } from 'lucide-react';
+import { ExternalLink, Terminal, Book, Heart, Github } from 'lucide-react';
 import MatrixBackground from '@/components/MatrixBackground';
 import Footer from '@/components/Footer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,6 +30,18 @@ const fetchArxivPapers = async () => {
   }));
 };
 
+const fetchGithubRepos = async () => {
+  const response = await fetch('https://api.github.com/search/repositories?q=stars:>1&sort=stars&order=desc&per_page=100');
+  if (!response.ok) throw new Error('Network response was not ok');
+  return response.json();
+};
+
+const fetchHuggingFacePosts = async () => {
+  const response = await fetch('https://huggingface.co/api/models?sort=downloads&direction=-1&limit=100');
+  if (!response.ok) throw new Error('Network response was not ok');
+  return response.json();
+};
+
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typingEffect, setTypingEffect] = useState('');
@@ -45,6 +57,16 @@ const Index = () => {
     queryFn: fetchArxivPapers,
   });
 
+  const { data: githubData, isLoading: githubLoading, error: githubError } = useQuery({
+    queryKey: ['githubRepos'],
+    queryFn: fetchGithubRepos,
+  });
+
+  const { data: huggingfaceData, isLoading: huggingfaceLoading, error: huggingfaceError } = useQuery({
+    queryKey: ['huggingfacePosts'],
+    queryFn: fetchHuggingFacePosts,
+  });
+
   const filteredStories = hnData?.hits?.filter(story =>
     story.title.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
@@ -53,8 +75,18 @@ const Index = () => {
     paper.title.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
+  const filteredRepos = githubData?.items?.filter(repo =>
+    repo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    repo.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
+
+  const filteredModels = huggingfaceData?.filter(model =>
+    model.modelId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    model.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
+
   useEffect(() => {
-    const text = "Hacker News & Arxiv Terminal";
+    const text = "_Cuteeterminal_";
     let i = 0;
     const typingInterval = setInterval(() => {
       if (i < text.length) {
@@ -88,23 +120,27 @@ const Index = () => {
     <>
       <div className="container mx-auto p-4 bg-background/80 relative z-10 min-h-screen">
         <MatrixBackground />
-        <h1 className="text-4xl font-bold mb-6 text-primary text-glow flex items-center">
+        <h1 className="text-4xl font-bold mb-6 text-primary text-glow flex items-center justify-center">
+          <Heart className="mr-2 text-pink-500" />
           <Terminal className="mr-2" />
           {typingEffect}<span className="animate-pulse">_</span>
+          <Heart className="ml-2 text-pink-500" />
         </h1>
 
         <Input
           type="text"
-          placeholder="Search stories and papers..."
+          placeholder="Search across all platforms..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="mb-4 bg-input text-primary border-primary"
         />
 
         <Tabs defaultValue="hackernews" className="mb-6" onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="hackernews">Hacker News</TabsTrigger>
             <TabsTrigger value="arxiv">Arxiv Papers</TabsTrigger>
+            <TabsTrigger value="github">GitHub</TabsTrigger>
+            <TabsTrigger value="huggingface">HuggingFace</TabsTrigger>
           </TabsList>
 
           <TabsContent value="hackernews">
@@ -114,10 +150,10 @@ const Index = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredStories.map((story) => (
                   <Card key={story.objectID} className="bg-card/90 border-primary hover:shadow-lg hover:shadow-pink-500/50 transition-all duration-300 ease-in-out backdrop-blur-sm group">
-                    <CardHeader className="group-hover:text-pink-500 transition-colors duration-300">
+                    <CardHeader>
                       <CardTitle className="text-lg text-primary group-hover:text-pink-500 transition-colors duration-300">{story.title}</CardTitle>
                     </CardHeader>
-                    <CardContent className="group-hover:text-pink-300 transition-colors duration-300">
+                    <CardContent>
                       <p className="text-sm text-muted-foreground mb-2">Upvotes: {story.points}</p>
                       <Button
                         variant="outline"
@@ -143,10 +179,10 @@ const Index = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredPapers.map((paper, index) => (
                   <Card key={index} className="bg-card/90 border-primary hover:shadow-lg hover:shadow-pink-500/50 transition-all duration-300 ease-in-out backdrop-blur-sm group">
-                    <CardHeader className="group-hover:text-pink-500 transition-colors duration-300">
+                    <CardHeader>
                       <CardTitle className="text-lg text-primary group-hover:text-pink-500 transition-colors duration-300">{paper.title}</CardTitle>
                     </CardHeader>
-                    <CardContent className="group-hover:text-pink-300 transition-colors duration-300">
+                    <CardContent>
                       <p className="text-sm text-muted-foreground mb-2 line-clamp-3">{paper.summary}</p>
                       <p className="text-xs text-muted-foreground mb-2">Published: {new Date(paper.published).toLocaleDateString()}</p>
                       <Button
@@ -157,6 +193,66 @@ const Index = () => {
                       >
                         <a href={paper.link} target="_blank" rel="noopener noreferrer">
                           Read Paper <Book className="ml-2 h-4 w-4" />
+                        </a>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="github">
+            {githubLoading && renderSkeletonCards()}
+            {githubError && <p className="text-destructive">Error: {githubError.message}</p>}
+            {!githubLoading && !githubError && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredRepos.map((repo) => (
+                  <Card key={repo.id} className="bg-card/90 border-primary hover:shadow-lg hover:shadow-pink-500/50 transition-all duration-300 ease-in-out backdrop-blur-sm group">
+                    <CardHeader>
+                      <CardTitle className="text-lg text-primary group-hover:text-pink-500 transition-colors duration-300">{repo.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{repo.description}</p>
+                      <p className="text-xs text-muted-foreground mb-2">⭐ {repo.stargazers_count.toLocaleString()}</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="border-primary text-primary hover:bg-pink-500 hover:text-black hover:border-pink-500 transition-colors duration-300"
+                      >
+                        <a href={repo.html_url} target="_blank" rel="noopener noreferrer">
+                          View Repository <Github className="ml-2 h-4 w-4" />
+                        </a>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="huggingface">
+            {huggingfaceLoading && renderSkeletonCards()}
+            {huggingfaceError && <p className="text-destructive">Error: {huggingfaceError.message}</p>}
+            {!huggingfaceLoading && !huggingfaceError && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredModels.map((model) => (
+                  <Card key={model.modelId} className="bg-card/90 border-primary hover:shadow-lg hover:shadow-pink-500/50 transition-all duration-300 ease-in-out backdrop-blur-sm group">
+                    <CardHeader>
+                      <CardTitle className="text-lg text-primary group-hover:text-pink-500 transition-colors duration-300">{model.modelId}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{model.description || "No description available"}</p>
+                      <p className="text-xs text-muted-foreground mb-2">Downloads: {model.downloads?.toLocaleString() || "N/A"}</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="border-primary text-primary hover:bg-pink-500 hover:text-black hover:border-pink-500 transition-colors duration-300"
+                      >
+                        <a href={`https://huggingface.co/${model.modelId}`} target="_blank" rel="noopener noreferrer">
+                          View Model <ExternalLink className="ml-2 h-4 w-4" />
                         </a>
                       </Button>
                     </CardContent>
