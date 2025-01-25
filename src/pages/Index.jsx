@@ -86,7 +86,7 @@ const Index = () => {
   ) || [];
 
   useEffect(() => {
-    const text = "_Cuteeterminal_";
+    const text = "_cuteeterminal_";
     let i = 0;
     const typingInterval = setInterval(() => {
       if (i < text.length) {
