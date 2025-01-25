@@ -1,4 +1,5 @@
 Cuteeterminal
+https://preview--cuteeterminal-001.lovable.app/
 
 - Search Arxiv, Github, Huggingface, Hacker News.
 - View latest or most popular articles and pages.
@@ -10,6 +11,8 @@ Then, building from there.
 
 This is mainly a learning project using [lovable.dev ](https://lovable.dev) 
 Altering the below project.
+
+Suggestions welcome. :)
 
 
 
