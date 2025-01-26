@@ -1,16 +1,18 @@
 import { Heart, Terminal } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 const Header = () => {
   const [typingEffect, setTypingEffect] = useState('');
+  const text = "_cuteeterminal_";
 
-  useEffect(() => {
-    const text = "_cuteeterminal_";
-    let i = 0;
+  const typeText = useCallback(() => {
+    let currentIndex = 0;
+    setTypingEffect(''); // Reset the text
+
     const typingInterval = setInterval(() => {
-      if (i < text.length) {
-        setTypingEffect((prev) => prev + text.charAt(i));
-        i++;
+      if (currentIndex < text.length) {
+        setTypingEffect(prev => prev + text.charAt(currentIndex));
+        currentIndex++;
       } else {
         clearInterval(typingInterval);
       }
@@ -18,6 +20,11 @@ const Header = () => {
 
     return () => clearInterval(typingInterval);
   }, []);
+
+  useEffect(() => {
+    const cleanup = typeText();
+    return cleanup;
+  }, []); // Only run once on mount
 
   return (
     <h1 className="text-4xl font-bold mb-6 text-primary text-glow flex items-center justify-center">
