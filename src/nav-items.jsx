@@ -1,14 +1,18 @@
-import { Newspaper } from "lucide-react";
+import { Newspaper, MessageSquare } from "lucide-react";
 import Index from "./pages/Index.jsx";
+import AiChat from "./pages/AiChat.jsx";
 
-/**
- * Central place for defining the navigation items. Used for navigation components and routing.
- */
 export const navItems = [
   {
     title: "Hacker News",
     to: "/",
     icon: <Newspaper className="h-4 w-4" />,
     page: <Index />,
+  },
+  {
+    title: "AI Chat",
+    to: "/ai-chat",
+    icon: <MessageSquare className="h-4 w-4" />,
+    page: <AiChat />,
   },
 ];
