@@ -44,8 +44,8 @@ const fetchHuggingFacePosts = async () => {
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSource, setActiveSource] = useState('arxiv');
+  const [sortBy, setSortBy] = useState('date');
 
-  // Fetch data from all sources simultaneously
   const { data: hnData, isLoading: hnLoading, error: hnError } = useQuery({
     queryKey: ['topStories'],
     queryFn: fetchTopStories,
@@ -77,7 +77,8 @@ const Index = () => {
       results.push(...hnData.hits.map(item => ({
         ...item,
         source: 'hackernews',
-        date: new Date(item.created_at).getTime()
+        date: new Date(item.created_at).getTime(),
+        popularity: item.points || 0
       })));
     }
     
@@ -85,7 +86,8 @@ const Index = () => {
       results.push(...arxivData.map(item => ({
         ...item,
         source: 'arxiv',
-        date: new Date(item.published).getTime()
+        date: new Date(item.published).getTime(),
+        popularity: 0 // Arxiv doesn't have a direct popularity metric
       })));
     }
     
@@ -93,7 +95,8 @@ const Index = () => {
       results.push(...githubData.items.map(item => ({
         ...item,
         source: 'github',
-        date: new Date(item.created_at).getTime()
+        date: new Date(item.created_at).getTime(),
+        popularity: item.stargazers_count
       })));
     }
     
@@ -101,7 +104,8 @@ const Index = () => {
       results.push(...huggingfaceData.map(item => ({
         ...item,
         source: 'huggingface',
-        date: new Date(item.lastModified || Date.now()).getTime()
+        date: new Date(item.lastModified || Date.now()).getTime(),
+        popularity: item.downloads || 0
       })));
     }
     
@@ -115,6 +119,23 @@ const Index = () => {
     });
   };
 
+  const sortResults = (results) => {
+    return [...results].sort((a, b) => {
+      switch (sortBy) {
+        case 'date':
+          return b.date - a.date;
+        case 'popularity':
+          return b.popularity - a.popularity;
+        case 'title':
+          const titleA = (a.title || a.name || a.modelId || '').toLowerCase();
+          const titleB = (b.title || b.name || b.modelId || '').toLowerCase();
+          return titleA.localeCompare(titleB);
+        default:
+          return 0;
+      }
+    });
+  };
+
   const renderContent = () => {
     const isLoading = hnLoading || arxivLoading || githubLoading || huggingfaceLoading;
     const hasError = hnError || arxivError || githubError || huggingfaceError;
@@ -124,40 +145,33 @@ const Index = () => {
 
     let filteredData;
     if (searchTerm && activeSource === 'all') {
-      filteredData = getAllResults()
-        .sort((a, b) => b.date - a.date)
+      filteredData = sortResults(getAllResults())
         .map(item => ({ item, type: item.source }));
     } else {
+      let sourceData;
       switch (activeSource) {
         case 'hackernews':
-          filteredData = hnData?.hits
-            ?.filter(story => story.title.toLowerCase().includes(searchTerm.toLowerCase()))
-            .map(item => ({ item, type: 'hackernews' })) || [];
+          sourceData = hnData?.hits?.map(item => ({ ...item, popularity: item.points })) || [];
           break;
         case 'arxiv':
-          filteredData = arxivData
-            ?.filter(paper => paper.title.toLowerCase().includes(searchTerm.toLowerCase()))
-            .map(item => ({ item, type: 'arxiv' })) || [];
+          sourceData = arxivData?.map(item => ({ ...item, popularity: 0 })) || [];
           break;
         case 'github':
-          filteredData = githubData?.items
-            ?.filter(repo => 
-              repo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              repo.description?.toLowerCase().includes(searchTerm.toLowerCase())
-            )
-            .map(item => ({ item, type: 'github' })) || [];
+          sourceData = githubData?.items?.map(item => ({ ...item, popularity: item.stargazers_count })) || [];
           break;
         case 'huggingface':
-          filteredData = huggingfaceData
-            ?.filter(model =>
-              model.modelId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              model.description?.toLowerCase().includes(searchTerm.toLowerCase())
-            )
-            .map(item => ({ item, type: 'huggingface' })) || [];
+          sourceData = huggingfaceData?.map(item => ({ ...item, popularity: item.downloads })) || [];
           break;
         default:
-          filteredData = [];
+          sourceData = [];
       }
+
+      filteredData = sortResults(
+        sourceData.filter(item => 
+          (item.title || item.name || item.modelId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (item.description || item.summary || '').toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      ).map(item => ({ item, type: activeSource }));
     }
 
     return (
@@ -183,7 +197,7 @@ const Index = () => {
         <MatrixBackground />
         <Header />
         <div className="flex flex-col md:flex-row gap-4 mb-4">
-          <div className="w-full md:w-3/4">
+          <div className="w-full md:w-2/4">
             <SearchInput searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
           </div>
           <div className="w-full md:w-1/4">
@@ -197,6 +211,18 @@ const Index = () => {
                 <SelectItem value="github">GitHub</SelectItem>
                 <SelectItem value="huggingface">HuggingFace</SelectItem>
                 <SelectItem value="hackernews">Hacker News</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-full md:w-1/4">
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sort by..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">Most Recent</SelectItem>
+                <SelectItem value="popularity">Most Popular</SelectItem>
+                <SelectItem value="title">Title (A-Z)</SelectItem>
               </SelectContent>
             </Select>
           </div>
