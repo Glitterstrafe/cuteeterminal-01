@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import MatrixBackground from '@/components/MatrixBackground';
 import Footer from '@/components/Footer';
 import SearchInput from '@/components/SearchInput';
@@ -43,27 +43,50 @@ const fetchHuggingFacePosts = async () => {
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('arxiv');
+  const [activeSource, setActiveSource] = useState('arxiv');
 
-  const { data: hnData, isLoading: hnLoading, error: hnError } = useQuery({
+  const { data: hnData, isLoading: hnLoading, error: hnError, refetch: refetchHN } = useQuery({
     queryKey: ['topStories'],
     queryFn: fetchTopStories,
+    enabled: activeSource === 'hackernews',
   });
 
-  const { data: arxivData, isLoading: arxivLoading, error: arxivError } = useQuery({
+  const { data: arxivData, isLoading: arxivLoading, error: arxivError, refetch: refetchArxiv } = useQuery({
     queryKey: ['arxivPapers'],
     queryFn: fetchArxivPapers,
+    enabled: activeSource === 'arxiv',
   });
 
-  const { data: githubData, isLoading: githubLoading, error: githubError } = useQuery({
+  const { data: githubData, isLoading: githubLoading, error: githubError, refetch: refetchGithub } = useQuery({
     queryKey: ['githubRepos'],
     queryFn: fetchGithubRepos,
+    enabled: activeSource === 'github',
   });
 
-  const { data: huggingfaceData, isLoading: huggingfaceLoading, error: huggingfaceError } = useQuery({
+  const { data: huggingfaceData, isLoading: huggingfaceLoading, error: huggingfaceError, refetch: refetchHuggingface } = useQuery({
     queryKey: ['huggingfacePosts'],
     queryFn: fetchHuggingFacePosts,
+    enabled: activeSource === 'huggingface',
   });
+
+  const handleSourceChange = (value) => {
+    setActiveSource(value);
+    // Refetch data for the newly selected source
+    switch (value) {
+      case 'hackernews':
+        refetchHN();
+        break;
+      case 'arxiv':
+        refetchArxiv();
+        break;
+      case 'github':
+        refetchGithub();
+        break;
+      case 'huggingface':
+        refetchHuggingface();
+        break;
+    }
+  };
 
   const renderContent = (type, data, isLoading, error) => {
     if (isLoading) return renderSkeletonCards();
@@ -119,32 +142,29 @@ const Index = () => {
       <div className="container mx-auto p-4 bg-background/80 relative z-10 min-h-screen">
         <MatrixBackground />
         <Header />
-        <SearchInput searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+        <div className="flex flex-col md:flex-row gap-4 mb-4">
+          <div className="w-full md:w-3/4">
+            <SearchInput searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+          </div>
+          <div className="w-full md:w-1/4">
+            <Select value={activeSource} onValueChange={handleSourceChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="arxiv">Arxiv Papers</SelectItem>
+                <SelectItem value="github">GitHub</SelectItem>
+                <SelectItem value="huggingface">HuggingFace</SelectItem>
+                <SelectItem value="hackernews">Hacker News</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-        <Tabs defaultValue="arxiv" className="mb-6" onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="arxiv">Arxiv Papers</TabsTrigger>
-            <TabsTrigger value="github">GitHub</TabsTrigger>
-            <TabsTrigger value="huggingface">HuggingFace</TabsTrigger>
-            <TabsTrigger value="hackernews">Hacker News</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="hackernews">
-            {renderContent('hackernews', hnData, hnLoading, hnError)}
-          </TabsContent>
-
-          <TabsContent value="arxiv">
-            {renderContent('arxiv', arxivData, arxivLoading, arxivError)}
-          </TabsContent>
-
-          <TabsContent value="github">
-            {renderContent('github', githubData, githubLoading, githubError)}
-          </TabsContent>
-
-          <TabsContent value="huggingface">
-            {renderContent('huggingface', huggingfaceData, huggingfaceLoading, huggingfaceError)}
-          </TabsContent>
-        </Tabs>
+        {activeSource === 'hackernews' && renderContent('hackernews', hnData, hnLoading, hnError)}
+        {activeSource === 'arxiv' && renderContent('arxiv', arxivData, arxivLoading, arxivError)}
+        {activeSource === 'github' && renderContent('github', githubData, githubLoading, githubError)}
+        {activeSource === 'huggingface' && renderContent('huggingface', huggingfaceData, huggingfaceLoading, huggingfaceError)}
       </div>
       <Footer />
     </>
