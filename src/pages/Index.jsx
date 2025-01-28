@@ -45,85 +45,125 @@ const Index = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSource, setActiveSource] = useState('arxiv');
 
-  const { data: hnData, isLoading: hnLoading, error: hnError, refetch: refetchHN } = useQuery({
+  // Fetch data from all sources simultaneously
+  const { data: hnData, isLoading: hnLoading, error: hnError } = useQuery({
     queryKey: ['topStories'],
     queryFn: fetchTopStories,
-    enabled: activeSource === 'hackernews',
   });
 
-  const { data: arxivData, isLoading: arxivLoading, error: arxivError, refetch: refetchArxiv } = useQuery({
+  const { data: arxivData, isLoading: arxivLoading, error: arxivError } = useQuery({
     queryKey: ['arxivPapers'],
     queryFn: fetchArxivPapers,
-    enabled: activeSource === 'arxiv',
   });
 
-  const { data: githubData, isLoading: githubLoading, error: githubError, refetch: refetchGithub } = useQuery({
+  const { data: githubData, isLoading: githubLoading, error: githubError } = useQuery({
     queryKey: ['githubRepos'],
     queryFn: fetchGithubRepos,
-    enabled: activeSource === 'github',
   });
 
-  const { data: huggingfaceData, isLoading: huggingfaceLoading, error: huggingfaceError, refetch: refetchHuggingface } = useQuery({
+  const { data: huggingfaceData, isLoading: huggingfaceLoading, error: huggingfaceError } = useQuery({
     queryKey: ['huggingfacePosts'],
     queryFn: fetchHuggingFacePosts,
-    enabled: activeSource === 'huggingface',
   });
 
   const handleSourceChange = (value) => {
     setActiveSource(value);
-    // Refetch data for the newly selected source
-    switch (value) {
-      case 'hackernews':
-        refetchHN();
-        break;
-      case 'arxiv':
-        refetchArxiv();
-        break;
-      case 'github':
-        refetchGithub();
-        break;
-      case 'huggingface':
-        refetchHuggingface();
-        break;
-    }
   };
 
-  const renderContent = (type, data, isLoading, error) => {
+  const getAllResults = () => {
+    const results = [];
+    
+    if (hnData?.hits) {
+      results.push(...hnData.hits.map(item => ({
+        ...item,
+        source: 'hackernews',
+        date: new Date(item.created_at).getTime()
+      })));
+    }
+    
+    if (arxivData) {
+      results.push(...arxivData.map(item => ({
+        ...item,
+        source: 'arxiv',
+        date: new Date(item.published).getTime()
+      })));
+    }
+    
+    if (githubData?.items) {
+      results.push(...githubData.items.map(item => ({
+        ...item,
+        source: 'github',
+        date: new Date(item.created_at).getTime()
+      })));
+    }
+    
+    if (huggingfaceData) {
+      results.push(...huggingfaceData.map(item => ({
+        ...item,
+        source: 'huggingface',
+        date: new Date(item.lastModified || Date.now()).getTime()
+      })));
+    }
+    
+    return results.filter(item => {
+      const searchLower = searchTerm.toLowerCase();
+      const titleField = item.title || item.name || item.modelId || '';
+      const descField = item.summary || item.description || '';
+      
+      return titleField.toLowerCase().includes(searchLower) ||
+             descField.toLowerCase().includes(searchLower);
+    });
+  };
+
+  const renderContent = () => {
+    const isLoading = hnLoading || arxivLoading || githubLoading || huggingfaceLoading;
+    const hasError = hnError || arxivError || githubError || huggingfaceError;
+    
     if (isLoading) return renderSkeletonCards();
-    if (error) return <p className="text-destructive">Error: {error.message}</p>;
+    if (hasError) return <p className="text-destructive">Error loading content</p>;
 
     let filteredData;
-    switch (type) {
-      case 'hackernews':
-        filteredData = data?.hits?.filter(story =>
-          story.title.toLowerCase().includes(searchTerm.toLowerCase())
-        ) || [];
-        break;
-      case 'arxiv':
-        filteredData = data?.filter(paper =>
-          paper.title.toLowerCase().includes(searchTerm.toLowerCase())
-        ) || [];
-        break;
-      case 'github':
-        filteredData = data?.items?.filter(repo =>
-          repo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          repo.description?.toLowerCase().includes(searchTerm.toLowerCase())
-        ) || [];
-        break;
-      case 'huggingface':
-        filteredData = data?.filter(model =>
-          model.modelId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          model.description?.toLowerCase().includes(searchTerm.toLowerCase())
-        ) || [];
-        break;
-      default:
-        filteredData = [];
+    if (searchTerm && activeSource === 'all') {
+      filteredData = getAllResults()
+        .sort((a, b) => b.date - a.date)
+        .map(item => ({ item, type: item.source }));
+    } else {
+      switch (activeSource) {
+        case 'hackernews':
+          filteredData = hnData?.hits
+            ?.filter(story => story.title.toLowerCase().includes(searchTerm.toLowerCase()))
+            .map(item => ({ item, type: 'hackernews' })) || [];
+          break;
+        case 'arxiv':
+          filteredData = arxivData
+            ?.filter(paper => paper.title.toLowerCase().includes(searchTerm.toLowerCase()))
+            .map(item => ({ item, type: 'arxiv' })) || [];
+          break;
+        case 'github':
+          filteredData = githubData?.items
+            ?.filter(repo => 
+              repo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              repo.description?.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+            .map(item => ({ item, type: 'github' })) || [];
+          break;
+        case 'huggingface':
+          filteredData = huggingfaceData
+            ?.filter(model =>
+              model.modelId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              model.description?.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+            .map(item => ({ item, type: 'huggingface' })) || [];
+          break;
+        default:
+          filteredData = [];
+      }
     }
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredData.map((item, index) => (
-          <ContentCard key={index} item={item} type={type} />
+        {filteredData.map((data, index) => (
+          <ContentCard key={index} {...data} />
         ))}
       </div>
     );
@@ -152,6 +192,7 @@ const Index = () => {
                 <SelectValue placeholder="Select source" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">All Sources</SelectItem>
                 <SelectItem value="arxiv">Arxiv Papers</SelectItem>
                 <SelectItem value="github">GitHub</SelectItem>
                 <SelectItem value="huggingface">HuggingFace</SelectItem>
@@ -161,10 +202,7 @@ const Index = () => {
           </div>
         </div>
 
-        {activeSource === 'hackernews' && renderContent('hackernews', hnData, hnLoading, hnError)}
-        {activeSource === 'arxiv' && renderContent('arxiv', arxivData, arxivLoading, arxivError)}
-        {activeSource === 'github' && renderContent('github', githubData, githubLoading, githubError)}
-        {activeSource === 'huggingface' && renderContent('huggingface', huggingfaceData, huggingfaceLoading, huggingfaceError)}
+        {renderContent()}
       </div>
       <Footer />
     </>

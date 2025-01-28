@@ -3,6 +3,18 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, Book, Github } from 'lucide-react';
 
 const ContentCard = ({ item, type }) => {
+  const formatDate = (dateString) => {
+    if (!dateString) return 'No date available';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const getCardContent = () => {
     switch (type) {
       case 'hackernews':
@@ -13,6 +25,9 @@ const ContentCard = ({ item, type }) => {
             </CardTitle>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-2">Upvotes: {item.points}</p>
+              <p className="text-xs text-muted-foreground mb-2">
+                Posted: {formatDate(item.created_at)}
+              </p>
               <Button
                 variant="outline"
                 size="sm"
@@ -35,7 +50,7 @@ const ContentCard = ({ item, type }) => {
             <CardContent>
               <p className="text-sm text-muted-foreground mb-2 line-clamp-3">{item.summary}</p>
               <p className="text-xs text-muted-foreground mb-2">
-                Published: {new Date(item.published).toLocaleDateString()}
+                Published: {formatDate(item.published)}
               </p>
               <Button
                 variant="outline"
@@ -59,6 +74,9 @@ const ContentCard = ({ item, type }) => {
             <CardContent>
               <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{item.description}</p>
               <p className="text-xs text-muted-foreground mb-2">⭐ {item.stargazers_count.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground mb-2">
+                Created: {formatDate(item.created_at)}
+              </p>
               <Button
                 variant="outline"
                 size="sm"
@@ -84,6 +102,9 @@ const ContentCard = ({ item, type }) => {
               </p>
               <p className="text-xs text-muted-foreground mb-2">
                 Downloads: {item.downloads?.toLocaleString() || "N/A"}
+              </p>
+              <p className="text-xs text-muted-foreground mb-2">
+                Last Modified: {formatDate(item.lastModified)}
               </p>
               <Button
                 variant="outline"
