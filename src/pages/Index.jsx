@@ -30,7 +30,7 @@ const fetchArxivPapers = async () => {
 };
 
 const fetchGithubRepos = async () => {
-  const response = await fetch('https://api.github.com/search/repositories?q=stars:>1&sort=stars&order=desc&per_page=100');
+  const response = await fetch('https://api.github.com/search/repositories?q=stars:>1&sort=updated&order=desc&per_page=100');
   if (!response.ok) throw new Error('Network response was not ok');
   return response.json();
 };
@@ -95,7 +95,7 @@ const Index = () => {
       results.push(...githubData.items.map(item => ({
         ...item,
         source: 'github',
-        date: new Date(item.created_at).getTime(),
+        date: new Date(item.updated_at || item.pushed_at || item.created_at).getTime(),
         popularity: item.stargazers_count
       })));
     }
@@ -104,7 +104,6 @@ const Index = () => {
       results.push(...huggingfaceData.map(item => ({
         ...item,
         source: 'huggingface',
-        // If lastModified is null/undefined, use current date as fallback
         date: item.lastModified ? new Date(item.lastModified).getTime() : Date.now(),
         popularity: item.downloads || 0
       })));
@@ -124,7 +123,6 @@ const Index = () => {
     return [...results].sort((a, b) => {
       switch (sortBy) {
         case 'date':
-          // Ensure we're comparing valid numbers
           const dateA = isNaN(a.date) ? 0 : a.date;
           const dateB = isNaN(b.date) ? 0 : b.date;
           return dateB - dateA;
