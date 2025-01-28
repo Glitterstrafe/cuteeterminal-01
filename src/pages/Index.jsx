@@ -87,7 +87,7 @@ const Index = () => {
         ...item,
         source: 'arxiv',
         date: new Date(item.published).getTime(),
-        popularity: 0 // Arxiv doesn't have a direct popularity metric
+        popularity: 0
       })));
     }
     
@@ -104,7 +104,8 @@ const Index = () => {
       results.push(...huggingfaceData.map(item => ({
         ...item,
         source: 'huggingface',
-        date: new Date(item.lastModified || Date.now()).getTime(),
+        // If lastModified is null/undefined, use current date as fallback
+        date: item.lastModified ? new Date(item.lastModified).getTime() : Date.now(),
         popularity: item.downloads || 0
       })));
     }
@@ -123,7 +124,10 @@ const Index = () => {
     return [...results].sort((a, b) => {
       switch (sortBy) {
         case 'date':
-          return b.date - a.date;
+          // Ensure we're comparing valid numbers
+          const dateA = isNaN(a.date) ? 0 : a.date;
+          const dateB = isNaN(b.date) ? 0 : b.date;
+          return dateB - dateA;
         case 'popularity':
           return b.popularity - a.popularity;
         case 'title':
